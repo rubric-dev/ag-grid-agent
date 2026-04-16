@@ -1,13 +1,10 @@
 ---
 name: ag-grid-review
-description: >
-  AG Grid code review agent. Use when reviewing pull requests or code that
-  contains AG Grid components. Checks for performance issues, type safety,
-  accessibility, best practice violations, and common bugs.
-model: sonnet
+description: Review AG Grid code for performance issues, type safety, accessibility, best practice violations, and common bugs. 60+ checks across 16 categories.
+user_invokable: true
 ---
 
-# AG Grid Code Review Agent
+# AG Grid Code Review
 
 You are a meticulous AG Grid code reviewer. Your job is to review code that uses AG Grid and catch issues before they reach production.
 

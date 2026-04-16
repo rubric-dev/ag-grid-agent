@@ -1,6 +1,6 @@
 # AG Grid Skills & Agents for Claude Code
 
-Production-ready [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills and agents for [AG Grid](https://www.ag-grid.com/) development. Built from insights across official documentation, community best practices, and real-world production patterns.
+Production-ready [Claude Code](https://docs.anthropic.com/en/docs/claude-code) skills and agent for [AG Grid](https://www.ag-grid.com/) development. Built from insights across official documentation, community best practices, and real-world production patterns.
 
 Covers AG Grid **v29 through v35+**, with emphasis on the modern module architecture (v33+).
 
@@ -8,31 +8,36 @@ Covers AG Grid **v29 through v35+**, with emphasis on the modern module architec
 
 ### Skills (Slash Commands)
 
+Structured workflows that benefit from a repeatable checklist approach.
+
 | Skill | Command | Description |
 |-------|---------|-------------|
-| **Generate** | `/ag-grid-generate` | Scaffold a fully typed AG Grid component with module registration, proper React hooks, and best practices |
-| **Column Defs** | `/ag-grid-coldef` | Generate typed column definitions from TypeScript interfaces or JSON data. Auto-detects currency, date, status fields |
-| **Optimize** | `/ag-grid-optimize` | Audit your AG Grid implementation for performance issues: bundle size, re-renders, virtualization, memory leaks |
-| **Migrate** | `/ag-grid-migrate` | Migrate between AG Grid versions. Detects breaking changes, deprecated APIs, module system updates |
-| **Test** | `/ag-grid-test` | Generate tests for AG Grid components. Supports RTL, Playwright, Cypress, with virtualization-aware patterns |
-| **Troubleshoot** | `/ag-grid-troubleshoot` | Diagnose common AG Grid issues: blank grids, state loss, module errors, performance problems, styling conflicts |
+| **Optimize** | `/ag-grid-optimize` | Audit AG Grid code for performance issues: bundle size, React re-renders, virtualization tuning, memory leaks. Checklist-based with severity levels and before/after fixes |
+| **Migrate** | `/ag-grid-migrate` | Migrate between AG Grid versions. Complete breaking change database for v31→v35, package migration maps, codemod support, theming migration |
+| **Review** | `/ag-grid-review` | Code review with 60+ checks across 16 categories: module registration, row identity, React performance, column defs, type safety, SSRM, editing, theming, accessibility |
 
-### Agents (Autonomous Specialists)
+### Agent
 
 | Agent | Description |
 |-------|-------------|
-| **ag-grid-expert** | Deep AG Grid knowledge agent for architecture advice, API reference, feature comparison, and implementation guidance |
-| **ag-grid-review** | AG Grid code review agent with 60+ checks across performance, type safety, accessibility, and common bugs |
+| **ag-grid-expert** | All-purpose AG Grid expert. Answers architecture questions, generates components/column defs/tests, troubleshoots issues, compares features. Deep knowledge of API, modules, performance patterns, and TypeScript types |
+
+The expert agent absorbs what would otherwise be thin standalone skills — component scaffolding, column definition generation, test generation, and troubleshooting — because these work better as contextual conversations than rigid workflows.
 
 ## Installation
 
-### Option 1: Clone into your project (recommended)
+### Option 1: Copy into your project (recommended)
 
 ```bash
-# From your project root
-git clone https://github.com/rubric-dev/ag-grid-agent.git .claude/ag-grid
+# Clone and copy the .claude directory into your project
+git clone https://github.com/rubric-dev/ag-grid-agent.git /tmp/ag-grid-agent
+cp -r /tmp/ag-grid-agent/.claude/skills/ your-project/.claude/skills/
+cp -r /tmp/ag-grid-agent/.claude/agents/ your-project/.claude/agents/
+```
 
-# Or add as a git submodule
+### Option 2: Git submodule
+
+```bash
 git submodule add https://github.com/rubric-dev/ag-grid-agent.git .claude/ag-grid
 ```
 
@@ -41,121 +46,95 @@ Then reference in your project's `.claude/settings.json`:
 ```json
 {
   "skills": [
-    ".claude/ag-grid/.claude/skills/ag-grid-generate.md",
-    ".claude/ag-grid/.claude/skills/ag-grid-coldef.md",
     ".claude/ag-grid/.claude/skills/ag-grid-optimize.md",
     ".claude/ag-grid/.claude/skills/ag-grid-migrate.md",
-    ".claude/ag-grid/.claude/skills/ag-grid-test.md",
-    ".claude/ag-grid/.claude/skills/ag-grid-troubleshoot.md"
+    ".claude/ag-grid/.claude/skills/ag-grid-review.md"
   ],
   "agents": [
-    ".claude/ag-grid/.claude/agents/ag-grid-expert.md",
-    ".claude/ag-grid/.claude/agents/ag-grid-review.md"
+    ".claude/ag-grid/.claude/agents/ag-grid-expert.md"
   ]
 }
 ```
 
-### Option 2: Copy individual files
+### Option 3: CLAUDE.md only
 
-Copy the files you need from `.claude/skills/` and `.claude/agents/` into your project's `.claude/` directory.
-
-### Option 3: Reference the CLAUDE.md
-
-Copy the `CLAUDE.md` file to your project root to give Claude Code AG Grid context without installing skills/agents:
+For lightweight AG Grid context without skills/agents:
 
 ```bash
-curl -o CLAUDE.md https://raw.githubusercontent.com/rubric-dev/ag-grid-agent/develop/CLAUDE.md
+# Append to your existing CLAUDE.md
+curl -s https://raw.githubusercontent.com/rubric-dev/ag-grid-agent/develop/CLAUDE.md >> your-project/CLAUDE.md
 ```
 
 ## Usage Examples
 
-### Generate a new grid component
-
-```
-/ag-grid-generate
-
-Create a data grid for our user management page.
-- TypeScript interface: User { id, name, email, role, department, createdAt, active }
-- Server-side row model (we have 500K+ users)
-- Row grouping by department
-- Excel export
-- Set filter on role and department columns
-```
-
-### Generate column definitions
-
-```
-/ag-grid-coldef
-
-Generate column definitions for this interface:
-interface Trade {
-  tradeId: string;
-  symbol: string;
-  quantity: number;
-  price: number;
-  totalValue: number;
-  tradeDate: string;
-  status: 'pending' | 'executed' | 'cancelled';
-  trader: string;
-}
-```
-
-### Optimize an existing grid
+### Performance audit
 
 ```
 /ag-grid-optimize
 
-Our main dashboard grid is slow. The page takes 3 seconds to load
-and scrolling is laggy. Please audit and fix.
+Our main dashboard grid is slow — 3 second load, laggy scrolling.
+Please audit and fix.
 ```
 
-### Migrate to the latest version
+The optimizer scans your codebase for all AG Grid instances, checks against a severity-ranked checklist (bundle size, memoization, virtualization, data handling), and proposes specific fixes.
+
+### Version migration
 
 ```
 /ag-grid-migrate
 
 We're on AG Grid v31.2.0 and want to upgrade to v35.
-Please scan the codebase and handle the migration.
+Scan the codebase and handle the migration.
 ```
 
-### Generate tests
+The migrator detects your current version, maps every breaking change across versions, runs the official codemod, and handles manual fixes the codemod misses (theming, module registration, API renames).
+
+### Code review
 
 ```
-/ag-grid-test
+/ag-grid-review
 
-Generate tests for the TradeGrid component at src/components/TradeGrid.tsx.
-We use React Testing Library and Playwright.
+Review the AG Grid code in src/components/DataGrid.tsx
 ```
 
-### Troubleshoot an issue
+Reviews against 60+ checks: missing `getRowId`, unstable references, type safety gaps, SSRM error handling, accessibility issues, and version-specific deprecations.
+
+### Ask the expert
+
+For anything else — generating components, column definitions, tests, debugging, architecture decisions — just ask naturally:
 
 ```
-/ag-grid-troubleshoot
+Create a server-side row model grid for our trade blotter.
+500K+ rows, grouped by trader and symbol, with Excel export.
+```
 
-Our grid loses the selected rows whenever new data comes in from the API.
-The grid is at src/components/OrderGrid.tsx.
+```
+My grid loses selection when new data comes in. The component is at
+src/components/OrderGrid.tsx — can you diagnose and fix?
+```
+
+```
+Generate Playwright E2E tests for the grid at src/pages/Dashboard.tsx
 ```
 
 ## What Knowledge Is Baked In
 
-These skills and agents encode knowledge from:
-
-- **AG Grid official documentation** (v29-v35.2): API reference, module system, theming, server-side model, all grid options and events
-- **Community insights**: Top 10 most common problems, Stack Overflow patterns, GitHub discussions, blog posts
-- **Performance patterns**: Bundle optimization (43% reduction with selective modules), React re-render prevention, virtualization tuning, streaming data handling
-- **Testing patterns**: RTL with AG Grid test IDs (v33+), jsdom polyfills, Playwright helpers, virtualization-aware assertions
+- **AG Grid official documentation** (v29-v35.2): Full API, module system, theming, server-side model, all grid options and events
+- **Community insights**: Top 10 developer problems, Stack Overflow patterns, GitHub discussions
+- **Performance patterns**: Selective module imports (43% bundle reduction), React re-render prevention, virtualization tuning, streaming data
+- **Testing patterns**: RTL with AG Grid test IDs (v33+), jsdom polyfills, Playwright/Cypress helpers
 - **Enterprise patterns**: Server-side row model, master/detail, clipboard, Excel export with styles, integrated charts
-- **Migration knowledge**: Complete breaking change database for v31, v32, v33, v34, v35 including codemod support
-- **TypeScript patterns**: Full generic typing for components, events, params, and custom components
-- **Cross-framework awareness**: React, Angular, Vue, and vanilla JS patterns
+- **Migration knowledge**: Complete breaking change database v31→v35 with codemod support
+- **TypeScript patterns**: Full generic typing for components, events, params, custom components
+- **Cross-framework**: React, Angular, Vue, and vanilla JS awareness
 
 ## AG Grid Version Support
 
 | Version | Support Level |
 |---------|--------------|
-| v35.x | Full support (latest) |
-| v34.x | Full support |
-| v33.x | Full support (module architecture migration) |
+| v35.x | Full (latest) |
+| v34.x | Full |
+| v33.x | Full (module architecture migration) |
 | v32.x | Migration support (LTS available) |
 | v31.x | Migration support |
 | v29-v30 | Basic migration support |
@@ -165,9 +144,9 @@ These skills and agents encode knowledge from:
 Contributions welcome! If you find a pattern or gotcha not covered:
 
 1. Fork this repo
-2. Add to the relevant skill or agent file
+2. Add to the relevant skill or agent markdown file
 3. Open a PR with a description of the scenario
 
 ## License
 
-MIT License - see [LICENSE](LICENSE) for details.
+MIT License — see [LICENSE](LICENSE) for details.
