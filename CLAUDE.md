@@ -1,21 +1,17 @@
 # AG Grid Skills & Agents for Claude Code
 
-This repository provides a collection of Claude Code skills and agents specialized for AG Grid development. They encode deep knowledge of AG Grid's API (v33-v35+), module system, performance patterns, and common pitfalls.
+This repository provides Claude Code skills and an expert agent specialized for AG Grid development. They encode deep knowledge of AG Grid's API (v33-v35+), module system, performance patterns, and common pitfalls.
 
 ## Repository Structure
 
 ```
 .claude/
   skills/       # User-invokable slash commands
-    ag-grid-generate.md      # /ag-grid-generate - Scaffold AG Grid components
-    ag-grid-coldef.md        # /ag-grid-coldef - Generate typed column definitions
-    ag-grid-optimize.md      # /ag-grid-optimize - Performance audit & fixes
-    ag-grid-migrate.md       # /ag-grid-migrate - Version migration helper
-    ag-grid-test.md          # /ag-grid-test - Generate AG Grid tests
-    ag-grid-troubleshoot.md  # /ag-grid-troubleshoot - Debug common issues
+    ag-grid-optimize.md   # /ag-grid-optimize - Performance audit & fixes
+    ag-grid-migrate.md    # /ag-grid-migrate - Version migration helper
+    ag-grid-review.md     # /ag-grid-review - AG Grid code review (60+ checks)
   agents/       # Specialized autonomous agents
-    ag-grid-expert.md        # Deep AG Grid knowledge agent
-    ag-grid-review.md        # AG Grid code review agent
+    ag-grid-expert.md     # Deep AG Grid knowledge agent
 ```
 
 ## AG Grid Version Context
