@@ -158,15 +158,91 @@ const state: GridState = api.getState();
 // rowGroup, rowGroupExpansion, rowSelection, scroll, sideBar, sort
 ```
 
+### Column State Persistence (localStorage recipe)
+Per-user column width, order, pinning, visibility — without the full
+`GridState` surface. Namespace by `gridId` so multiple grids don't collide.
+For filters/sort/selection too, use `getState()` + `initialState` instead.
+
+```tsx
+const STORAGE_KEY = `ag-colstate:${gridId}`;
+
+const onGridReady = useCallback((e: GridReadyEvent) => {
+  const saved = localStorage.getItem(STORAGE_KEY);
+  if (saved) e.api.applyColumnState({ state: JSON.parse(saved), applyOrder: true });
+}, [gridId]);
+
+const persist = useMemo(() => {
+  let t: ReturnType<typeof setTimeout>;
+  return (api: GridApi) => {
+    clearTimeout(t);
+    t = setTimeout(
+      () => localStorage.setItem(STORAGE_KEY, JSON.stringify(api.getColumnState())),
+      300,
+    );
+  };
+}, [gridId]);
+
+// Skip programmatic changes — only persist user-driven moves/resizes/pins.
+const onColumnChanged = useCallback((e: ColumnEvent) => {
+  if (e.source === 'api' || e.source === 'apiNoUndo') return;
+  persist(e.api);
+}, [persist]);
+
+<AgGridReact
+  onGridReady={onGridReady}
+  onColumnMoved={onColumnChanged}
+  onColumnResized={onColumnChanged}
+  onColumnPinned={onColumnChanged}
+  onColumnVisible={onColumnChanged}
+/>
+```
+
+### Localization (i18n)
+AG Grid ships `AG_GRID_LOCALE_*` constants (KO, JP, ZH, FR, DE, ES, …); apply
+via `localeText`. English is the default — no import needed. Changing locale
+at runtime requires remounting the grid.
+
+```tsx
+import { AG_GRID_LOCALE_KO } from 'ag-grid-community';
+
+const localeText = useMemo(() => ({
+  ...AG_GRID_LOCALE_KO,
+  noRowsToShow: '데이터가 없습니다', // override specific keys as needed
+}), []);
+
+<AgGridReact localeText={localeText} />
+```
+
+Always spread the constant first — plain `{ noRowsToShow: '...' }` wipes out
+the other 200+ translated strings.
+
+### Status Bar (Enterprise)
+Requires `StatusBarModule`. Built-in panels cover most needs.
+
+```tsx
+const statusBar = useMemo<GridOptions['statusBar']>(() => ({
+  statusPanels: [
+    { statusPanel: 'agTotalRowCountComponent', align: 'left' },
+    { statusPanel: 'agFilteredRowCountComponent' },
+    { statusPanel: 'agSelectedRowCountComponent' },
+    { statusPanel: 'agAggregationComponent', align: 'right' },
+  ],
+}), []);
+
+<AgGridReact statusBar={statusBar} />
+```
+
+Aggregation panel only shows when cells in numeric columns are range-selected
+(requires `CellSelectionModule`).
+
 ### Common Pitfalls
-1. `params.data` is undefined in group rows — always null-check
+1. `params.data` is undefined in group rows and pinned rows — always null-check
 2. `pinned: null` clears pinning; `pinned: undefined` leaves unchanged
 3. Theming API and legacy CSS cannot coexist on same page
 4. `ExcelExportModule` no longer includes CSV (v33+) — register both
 5. `ColumnsToolPanelModule` no longer includes `RowGroupingModule` (v33+)
-6. Changing locale at runtime requires grid destruction and recreation
-7. `autoHeight` domLayout causes performance issues with many rows
-8. Custom CSS modifying `position`/`overflow`/`pointer-events` breaks grid
+6. `autoHeight` domLayout causes performance issues with many rows
+7. Custom CSS modifying `position`/`overflow`/`pointer-events` breaks grid
 
 ---
 
@@ -210,6 +286,35 @@ export const MyGrid = () => {
   );
 };
 ```
+
+### Custom Wrapper Component (multi-grid apps)
+When an app has 10+ grids with shared concerns (locale, theme, status bar,
+column persistence, row numbers, dirty tracking), wrap `AgGridReact` in a
+project-level component instead of repeating setup at every call site.
+
+```tsx
+interface AgGridTableProps<TData> {
+  gridId: string;                    // for column state persistence
+  rowData: TData[];
+  columnDefs: ColDef<TData>[];
+  showLineNumber?: boolean;
+  showTotals?: Partial<Record<keyof TData, 'sum' | 'avg'>>;
+  enableDirtyTracking?: boolean;
+  // ...passthrough to AgGridReact
+}
+
+export const AgGridTable = <TData extends { id: string | number }>(
+  props: AgGridTableProps<TData>,
+) => { /* compose defaults + persistence + locale here */ };
+```
+
+Rules for wrappers:
+- Generic `<TData>` must flow through — don't collapse to `any`.
+- Accept `columnDefs` as-is; don't mutate. Merge injected columns (line number)
+  immutably via `useMemo`.
+- Forward refs so callers can still reach `api`: `forwardRef<AgGridReact<TData>>`.
+- Don't hide AG Grid props behind custom names — pass through rather than
+  rename; reduces surprise when reading AG Grid docs.
 
 ### Critical Component Rules
 - **ALWAYS** use `useMemo` for `columnDefs`, `defaultColDef`, and any object/array props
@@ -283,6 +388,108 @@ const columnTypes: { [key: string]: ColDef } = {
   },
 };
 ```
+
+### Data Type Definitions
+For domain types reused across columns, register once via
+`dataTypeDefinitions`. Opt in per column with `cellDataType: 'price'`. This
+wires filter, editor, formatter, and parser consistently and prevents drift
+when the same type appears in many grids.
+
+```tsx
+const dataTypeDefinitions = useMemo<GridOptions['dataTypeDefinitions']>(() => ({
+  price: {
+    baseDataType: 'number',
+    extendsDataType: 'number',
+    valueFormatter: (p) => p.value == null ? '' : `₩${p.value.toLocaleString('ko-KR')}`,
+    valueParser: (p) => {
+      const s = String(p.newValue ?? '').replace(/[^\d.-]/g, '');
+      return s === '' ? null : Number(s);
+    },
+  },
+  percentage: {
+    baseDataType: 'number',
+    extendsDataType: 'number',
+    valueFormatter: (p) => p.value == null ? '' : `${(p.value * 100).toFixed(1)}%`,
+  },
+}), []);
+
+<AgGridReact dataTypeDefinitions={dataTypeDefinitions} />
+// Per-column opt-in:
+// { field: 'amount', cellDataType: 'price' }
+```
+
+Both `baseDataType` and `extendsDataType` are required. Custom types extending
+a built-in should set `baseDataType` to that built-in.
+
+### Row Number Column + Pinned Footer Totals
+Common ERP/spreadsheet pattern. Line number is pinned-left; totals are shown
+via `pinnedBottomRowData` with a synthetic row.
+
+```tsx
+const lineNumberCol = useMemo<ColDef<IRowData>>(() => ({
+  headerName: '#',
+  colId: '__lineNumber',
+  pinned: 'left',
+  width: 56,
+  suppressMovable: true,
+  sortable: false,
+  filter: false,
+  valueGetter: (p) => p.node?.rowPinned === 'bottom'
+    ? '합계'
+    : (p.node?.rowIndex ?? 0) + 1,
+  cellClass: (p) => p.node?.rowPinned ? 'ag-row-footer' : '',
+}), []);
+
+const pinnedBottomRowData = useMemo(() => [{
+  amount: rowData.reduce((s, r) => s + (r.amount ?? 0), 0),
+  qty: rowData.reduce((s, r) => s + (r.qty ?? 0), 0),
+}], [rowData]);
+
+<AgGridReact pinnedBottomRowData={pinnedBottomRowData} />
+```
+
+Pinned rows have `node.rowPinned === 'top' | 'bottom'` (not `undefined`) and
+synthetic `data` without real row fields like `id`. Guard every
+`valueGetter` / `valueFormatter` / `cellRenderer` accordingly.
+
+### Modified Row Tracking (Dirty State)
+For forms that submit only changed rows. Snapshot originals on first render
+and diff in `onCellValueChanged`. Lighter than a full store wiring.
+
+```tsx
+const originalsRef = useRef(new Map<string, IRowData>());
+const [dirtyIds, setDirtyIds] = useState(() => new Set<string>());
+
+const onFirstDataRendered = useCallback((e: FirstDataRenderedEvent<IRowData>) => {
+  e.api.forEachNode((n) => {
+    if (n.data) originalsRef.current.set(n.data.id, { ...n.data });
+  });
+}, []);
+
+const onCellValueChanged = useCallback((e: CellValueChangedEvent<IRowData>) => {
+  const row = e.data;
+  if (!row) return;
+  const original = originalsRef.current.get(row.id);
+  const isDirty = !!original && JSON.stringify(original) !== JSON.stringify(row);
+  setDirtyIds((prev) => {
+    const has = prev.has(row.id);
+    if (isDirty === has) return prev; // no-op, avoid re-render
+    const next = new Set(prev);
+    if (isDirty) next.add(row.id); else next.delete(row.id);
+    return next;
+  });
+}, []);
+
+// Submit only dirty rows; pair with getRowClass for visual feedback.
+const getRowClass = useCallback(
+  (p: RowClassParams<IRowData>) => dirtyIds.has(p.data?.id ?? '') ? 'row-dirty' : '',
+  [dirtyIds],
+);
+```
+
+`JSON.stringify` diffing is fine for flat row shapes coming from the same
+source (key order is stable); for nested/heterogeneous shapes use a field-by-
+field comparator.
 
 ---
 

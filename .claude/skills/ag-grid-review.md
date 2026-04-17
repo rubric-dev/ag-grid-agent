@@ -1,6 +1,6 @@
 ---
 name: ag-grid-review
-description: Review AG Grid code for performance issues, type safety, accessibility, best practice violations, and common bugs. 60+ checks across 16 categories.
+description: Review AG Grid code for performance issues, type safety, accessibility, localization, and common bugs. 70+ checks across 17 categories.
 user_invokable: true
 ---
 
@@ -27,6 +27,8 @@ When reviewing AG Grid code, check every item below. Report issues with severity
 ### 2. Row Identity
 
 - [ ] **CRITICAL**: `getRowId` is provided when data can update
+- [ ] **CRITICAL**: `getRowId` generates IDs at call time (`Math.random()`, `Date.now()`, `crypto.randomUUID()`) — defeats row identity on every recompute. Must be a stable property of the row, e.g. `params.data.id` or a composite like `` `${data.orderId}:${data.lineNo}` ``
+- [ ] **WARNING**: `getRowId` uses a fallback like `data.id ?? Math.random()` — masks missing IDs in production; fix the upstream data instead
 - [ ] **WARNING**: `getRowId` returns non-unique values (duplicates cause undefined behavior)
 - [ ] **WARNING**: `getRowId` uses array index (breaks on sort/filter)
 - [ ] **INFO**: `getRowId` is wrapped in `useCallback`
@@ -116,13 +118,21 @@ When reviewing AG Grid code, check every item below. Report issues with severity
 - [ ] **WARNING**: Hard-coded colors instead of theme params/CSS variables
 - [ ] **INFO**: Not using theme composition (withPart/withParams)
 
-### 14. Accessibility
+### 14. Localization
+
+- [ ] **WARNING**: Non-English app with no `localeText` set (menus, filters, tool panels, status bar fall back to English) — import the matching `AG_GRID_LOCALE_*` constant
+- [ ] **WARNING**: `localeText` defined inline (new reference every render) — wrap in `useMemo`
+- [ ] **WARNING**: Custom strings assigned without spreading the constant (`{ noRowsToShow: '...' }`) — wipes out the other ~200 translations; use `{ ...AG_GRID_LOCALE_KO, ...overrides }`
+- [ ] **WARNING**: Grids in the same app mix locales — pick one and centralize
+- [ ] **INFO**: `toLocaleString()` / `Intl.*` called without an explicit locale arg — relies on runtime locale, may not match UI language
+
+### 15. Accessibility
 
 - [ ] **WARNING**: Interactive cell renderer doesn't handle keyboard events
 - [ ] **WARNING**: Custom component missing ARIA attributes
 - [ ] **INFO**: `ensureDomOrder` not set for screen reader users
 
-### 15. Performance
+### 16. Performance
 
 - [ ] **CRITICAL**: `suppressRowVirtualisation={true}` on large grid
 - [ ] **CRITICAL**: `suppressColumnVirtualisation={true}` with many columns
@@ -132,7 +142,7 @@ When reviewing AG Grid code, check every item below. Report issues with severity
 - [ ] **INFO**: `animateRows` enabled on very large dataset
 - [ ] **INFO**: High `rowBuffer` value
 
-### 16. Version-Specific Issues
+### 17. Version-Specific Issues
 
 - [ ] **CRITICAL**: Using APIs removed in current version
 - [ ] **WARNING**: Using deprecated APIs (with replacement available)
